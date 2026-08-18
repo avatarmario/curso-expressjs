@@ -95,6 +95,29 @@ app.post('/users', (req,res) => {
     });
 });
 
+//class 10
+app.put('/users/:id', (req, res) => {
+    const userId = parseInt(req.params.id, 10);
+    const updatedUser = req.body;
+
+    fs.readFile(usersFilePath, 'utf-8', (err, data) => {
+        if(err){
+            return res.status(500).json({ error: 'Failed to read users file' });
+        }
+
+        let users = JSON.parse(data);
+        users = users.map(user =>
+            user.id === userId ? {...user, ...updatedUser} : user
+        );
+        fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), (err) => {
+            if (err) {
+                return res.status(500).json({ error: 'Failed to write users file' });
+            }
+            res.json(updatedUser);
+        });
+    })
+});
+
 // API data submission handling
 app.post('/api/data', (req, res) => {
     const data = req.body;
