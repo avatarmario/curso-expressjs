@@ -3,6 +3,11 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 
+//class 8
+const fs = require('fs');   //file system
+const path = require('path');   //path module
+const usersFilePath = path.join(__dirname, 'users.json');   //path to the users.json file
+
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -54,6 +59,18 @@ app.post('/form', (req, res) => {
     })
 });
 
+//class 8
+// read users from the JSON file
+app.get('/users', (req, res) => {
+    fs.readFile(usersFilePath, 'utf8', (err, data) => {
+        if (err) {
+            return res.status(500).json({ error: 'Failed to read users file' });
+        }
+        const users = JSON.parse(data);
+        res.json(users);
+    });
+});
+
 // API data submission handling
 app.post('/api/data', (req, res) => {
     const data = req.body;
@@ -71,3 +88,4 @@ app.post('/api/data', (req, res) => {
 app.listen(PORT, () => {
     console.log('Server: http://localhost:' + PORT);
 })
+
