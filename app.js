@@ -71,6 +71,30 @@ app.get('/users', (req, res) => {
     });
 });
 
+//class 9
+//adding a new user to the JSON file
+app.post('/users', (req,res) => {
+    const newUser = req.body;
+
+    if(!newUser || Object.keys(newUser).length === 0) {
+        return res.status(400).json({ error: 'No user data provided' });
+    }
+
+    fs.readFile(usersFilePath, 'utf-8', (err, data) => {
+        if (err) {
+            return res.status(500).json({ error: 'Failed to read users file' });
+        }
+        const users = JSON.parse(data);
+        users.push(newUser);
+        fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), (err) => {
+            if (err) {
+                return res.status(500).json({ error: 'Failed to write users file' });
+            }
+            res.status(201).json(newUser);
+        });
+    });
+});
+
 // API data submission handling
 app.post('/api/data', (req, res) => {
     const data = req.body;
