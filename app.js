@@ -2,6 +2,9 @@ require('dotenv').config();
 
 const express = require('express');
 const bodyParser = require('body-parser');
+//class 10
+const { validateUser } = require('./utils/validation');
+const { isValidEmail, isValidName, isUniqueNumericId } = require('./utils/validation');
 
 //class 8
 const fs = require('fs');   //file system
@@ -15,6 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const PORT = process.env.PORT || 3000;
 console.log('PORT: ' + PORT);
 
+
 app.get('/', (req, res) => {
     res.send(`
         <h1>Express.js Course</h1>
@@ -27,10 +31,14 @@ app.get('/', (req, res) => {
 // ':' indicates a route parameter 
 app.get('/users/:id', (req, res) => {
     const userId = req.params.id;
+
+    if(!userId || isNaN(userId)) {
+        return res.status(400).json({ error: 'User ID is required and must be a number' });
+    }
     res.send('Show user with ID: ' + userId);
 });
 
-// Search route handling
+// Search route handling, retrieves query parameters from the client and displays search results
 app.get('/search', (req, res) => {
     const terms = req.query.termino || 'Not specified';
     const category = req.query.categoria || 'Todas';
@@ -45,10 +53,17 @@ app.get('/search', (req, res) => {
 });
 
 // Class 6
-// Form submission handling
+// Form submission handling, recieves user data from the client
 app.post('/form', (req, res) => {
     const name = req.body.nombre || 'Anonimo';
     const email = req.body.email || 'No especificado';
+
+    if(!isValidName(name)) {
+        return res.status(400).json({ error: 'Invalid name, must be at least 3 characters long' });
+    }
+    if(!isValidEmail(email)) {
+        return res.status(400).json({ error: 'Invalid email' });
+    }
 
     res.json({
         message: 'Datos recibidos correctamente',
@@ -84,8 +99,16 @@ app.post('/users', (req,res) => {
         if (err) {
             return res.status(500).json({ error: 'Failed to read users file' });
         }
+
         const users = JSON.parse(data);
+
+        const validation = validateUser(newUser, users);
+        if(!validation.valid) {
+            return res.status(400).json({ error: validation.error });
+        }
+
         users.push(newUser);
+
         fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), (err) => {
             if (err) {
                 return res.status(500).json({ error: 'Failed to write users file' });
@@ -100,15 +123,38 @@ app.put('/users/:id', (req, res) => {
     const userId = parseInt(req.params.id, 10);
     const updatedUser = req.body;
 
+    if(userId <= 0 || isNaN(userId)) {
+        return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
     fs.readFile(usersFilePath, 'utf-8', (err, data) => {
         if(err){
             return res.status(500).json({ error: 'Failed to read users file' });
         }
 
+        //users array from the JSON file
         let users = JSON.parse(data);
+
+        //check if the user exists in the array
+        const userExists = users.some(user => user.id === userId);
+        if(!userExists) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        if(!isValidName(updatedUser.name)) {
+            return res.status(400).json({ error: 'Invalid user name' });
+        }
+        if(!isValidEmail(updatedUser.email)) {
+            return res.status(400).json({ error: 'Invalid user email' });
+        }
+
+        const { id, ...changes } = updatedUser;
+
         users = users.map(user =>
-            user.id === userId ? {...user, ...updatedUser} : user
+            user.id === userId ? { ...user, ...changes } : user
         );
+
+        res.json(users.find(user => user.id === userId));
         fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), (err) => {
             if (err) {
                 return res.status(500).json({ error: 'Failed to write users file' });
@@ -117,6 +163,8 @@ app.put('/users/:id', (req, res) => {
         });
     })
 });
+
+
 
 // API data submission handling
 app.post('/api/data', (req, res) => {
