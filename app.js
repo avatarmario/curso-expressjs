@@ -164,6 +164,38 @@ app.put('/users/:id', (req, res) => {
     })
 });
 
+//class 12 delete
+app.delete('/users/:id', (req, res) => {
+    const userId = parseInt(req.params.id, 10);
+
+    if(userId <= 0 || isNaN(userId)) {
+        return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
+
+    fs.readFile(usersFilePath, 'utf-8', (err, data) => {
+        if(err){
+            return res.status(500).json({error: 'Error with accessing data'})
+        }
+
+        let users = JSON.parse(data);
+        //check if the user exists in the array
+        const userExists = users.some(user => user.id === userId);
+        if(!userExists) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        users = users.filter(user => user.id !== userId );
+        fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), (err) => {
+            if(err) {
+                return res.status(500).json({ error: 'Failed to write users file' });
+            }
+            res.status(204).send();
+        })
+    })
+});
+
+
+
 
 
 // API data submission handling
